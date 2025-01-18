@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include "chip8.hpp"
+#include "chip8.cpp"
 
 #define SDL_MAIN_HANDLED
 #include "SDL2/include/SDL.h"
@@ -40,6 +40,6 @@ SDL_Window* initialize_sdl()
 
 int main()
 {
-    printf("hello world");
+    initialize_sdl();
     return 0;
 }
