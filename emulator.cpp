@@ -1,45 +1,48 @@
+#include "chip8.hpp"
+#include "platform.hpp"
+#include <chrono>
 #include <iostream>
-#include <vector>
 #include <string>
-#include "chip8.cpp"
 
-#define SDL_MAIN_HANDLED
-#include "SDL2/include/SDL.h"
-#include "SDL2/include/SDL_opengl.h"
-#include "SDL2/include/SDL_thread.h"
 
-using namespace std;
-
-const unsigned char SCREEN_WIDTH = 32;
-const unsigned char SCREEN_HEIGHT = 64;
-
-//Initializes SDL and returns a window handle.
-SDL_Window* initialize_sdl()
+int main(int argc, char** argv)
 {
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) 
-  {
-    return NULL;
-  }
+	if (argc != 4)
+	{
+		std::cerr << "Usage: " << argv[0] << " <Scale> <Delay> <ROM>\n";
+		std::exit(EXIT_FAILURE);
+	}
 
-  // Setup window
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-  SDL_DisplayMode current;
-  SDL_GetCurrentDisplayMode(0, &current);
+	int videoScale = std::stoi(argv[1]);
+	int cycleDelay = std::stoi(argv[2]);
+	char const* romFilename = argv[3];
 
-  SDL_Window* window = SDL_CreateWindow(
-      "Chip-8 Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-      SCREEN_WIDTH, SCREEN_HEIGHT, SDL_RENDERER_ACCELERATED);
+	Platform platform("CHIP-8 Emulator", DISPLAY_WIDTH * videoScale, DISPLAY_HEIGHT * videoScale, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-  return window;
-}
+	Chip8 chip8;
+	chip8.LoadROM(romFilename);
 
+	int videoPitch = sizeof(chip8.video[0]) * DISPLAY_WIDTH;
 
-int main()
-{
-    initialize_sdl();
-    return 0;
+	auto lastCycleTime = std::chrono::high_resolution_clock::now();
+	bool quit = false;
+
+	while (!quit)
+	{
+		quit = platform.ProcessInput(chip8.keypad);
+
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float dt = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - lastCycleTime).count();
+
+		if (dt > cycleDelay)
+		{
+			lastCycleTime = currentTime;
+
+			chip8.Cycle();
+
+			platform.Update(chip8.video, videoPitch);
+		}
+	}
+
+	return 0;
 }

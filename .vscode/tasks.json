@@ -9,7 +9,7 @@
                 "/EHsc",
                 "/nologo",
                 "/Fe${fileDirname}\\compile\\executable\\${fileBasenameNoExtension}.exe",
-                "${fileDirname}/emulator.cpp",
+                "${fileDirname}/*.cpp",
                 "${file}",
                 "/I ${fileDirname}\\SDL\\include",
                 "/link ${fileDirname}\\SDL2\\lib\\x86\\SDL2main.lib ${fileDirname}\\SDL2\\lib\\x86\\SDL2.lib"

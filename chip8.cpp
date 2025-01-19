@@ -14,11 +14,15 @@ Memory Map
 */
 
 
+//size of fonts
 const unsigned int FONTSET_SIZE = 80;
-const unsigned int FONTSET_START_ADDRESS = 0x50;
 
+//font's start address
+const unsigned int FONTSET_START_ADDRESS = 0x50;
+//program start address
 const unsigned int START_ADDRESS = 0x200;
 
+//font
 uint8_t fontset[FONTSET_SIZE] =
 {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -54,8 +58,9 @@ Chip8::Chip8()
     };
 
     //using random to ensure accuracy
-    randByte = std::uniform_int_distribution<uint8_t>(0, 255U);
-    // Set up function pointer table
+	randByte = std::uniform_int_distribution<int>(0, 255);
+
+    // Set up function pointer table otherwise known as a table of functions, replaces swtich case with less code
 	table[0x0] = &Chip8::Table0;
 	table[0x1] = &Chip8::OP_1nnn;
 	table[0x2] = &Chip8::OP_2nnn;
@@ -73,6 +78,7 @@ Chip8::Chip8()
 	table[0xE] = &Chip8::TableE;
 	table[0xF] = &Chip8::TableF;
 
+	//creates a table filled with values corresponding to I
 	for (size_t i = 0; i <= 0xE; i++)
 	{
 		table0[i] = &Chip8::OP_NULL;
@@ -96,11 +102,13 @@ Chip8::Chip8()
 	tableE[0x1] = &Chip8::OP_ExA1;
 	tableE[0xE] = &Chip8::OP_Ex9E;
 
+	
     for (size_t i = 0; i <= 0x65; i++)
 	{
 		tableF[i] = &Chip8::OP_NULL;
 	}
 
+	//fills table with proper data
 	tableF[0x07] = &Chip8::OP_Fx07;
 	tableF[0x0A] = &Chip8::OP_Fx0A;
 	tableF[0x15] = &Chip8::OP_Fx15;
@@ -113,8 +121,30 @@ Chip8::Chip8()
 
 };
 
+void Chip8::LoadROM(char const* filename)
+{
+	std::ifstream file(filename, std::ios::binary | std::ios::ate);
+
+	if (file.is_open())
+	{
+		std::streampos size = file.tellg();
+		char* buffer = new char[size];
+		file.seekg(0, std::ios::beg);
+		file.read(buffer, size);
+		file.close();
+
+		for (long i = 0; i < size; ++i)
+		{
+			memory[START_ADDRESS + i] = buffer[i];
+		}
+
+		delete[] buffer;
+	}
+}
+
 void Chip8::Cycle()
 {
+	//sets opcode equal to memory shifted to the left by 4 units or increases the memory with a reference to the program counter.
     opcode = (memory[pc] << 8u | memory[pc+1]);
 
     pc += 2;
@@ -150,24 +180,31 @@ void Chip8::TableE()
 	((*this).*(tableE[opcode & 0x000Fu]))();
 }
 
+
 void Chip8::TableF()
 {
 	((*this).*(tableF[opcode & 0x00FFu]))();
 }
 
+//returns null value or a 0
 void Chip8::OP_NULL()
 {}
 
+//clears the screen and sets it to black
 void Chip8::OP_00E0()
 {
     //returns from the submodule
 	memset(video, 0, sizeof(video));
 }
+
+//points the program counter to a higher stack level so it can resume a subroutine 
 void Chip8::OP_00EE()
 {
     --sp;
     pc = stack[sp];
 }
+
+//sets up jumping to another tag (asm) or variable
 void Chip8::OP_1nnn()
 {
     //creates a variable address with opcode ex(1nnn) and combines it
@@ -178,6 +215,7 @@ void Chip8::OP_1nnn()
     //sets pc as current address
     pc = address;
 }
+//swaps to a subroutine at location nnn
 void Chip8::OP_2nnn()
 {
     //same as above
