@@ -58,7 +58,7 @@ Chip8::Chip8()
     };
 
     //using random to ensure accuracy
-	randByte = std::uniform_int_distribution<int>(0, 255);
+	randByte = std::uniform_int_distribution<unsigned short>(0, 255);
 
     // Set up function pointer table otherwise known as a table of functions, replaces swtich case with less code
 	table[0x0] = &Chip8::Table0;
@@ -209,9 +209,6 @@ void Chip8::OP_1nnn()
 {
     //creates a variable address with opcode ex(1nnn) and combines it
     uint16_t address = opcode & 0x0FFFu;
-    //sets the stack pointer to point to the current process counter, saving state on which it is executed
-    stack[sp] = pc;
-    ++sp;
     //sets pc as current address
     pc = address;
 }
@@ -229,7 +226,8 @@ void Chip8::OP_3xkk()
 {
     //creates a Vx value that is right shifted by 8 places
 	uint8_t Vx = (opcode & 0x0F00u) >> 8u;
-    //creates a byte with the currenet value
+
+    //creates a byte with the current value
 	uint8_t byte = opcode & 0x00FFu;
 
     //compares if the register value of Vx is the same as byte and if true skips to the next byte or instruction
@@ -256,7 +254,7 @@ void Chip8::OP_5xy0()
 {
     uint8_t Vx = (opcode & 0x0F00u) >> 8u;
     //creates a Vy value and shifts it by 4 places to the right (rightshift)
-    uint8_t Vy = (opcode &0x00F0u) >> 4u;
+    uint8_t Vy = (opcode & 0x00F0u) >> 4u;
 
     if (registers[Vx] == registers[Vy])
     {
@@ -426,15 +424,12 @@ void Chip8::OP_Dxyn()
 	uint8_t xPos = registers[Vx] % DISPLAY_WIDTH;
 	uint8_t yPos = registers[Vy] % DISPLAY_HEIGHT;
 
-    //removes flag from 0xf
 	registers[0xF] = 0;
 
-    //printing screen height
 	for (unsigned int row = 0; row < height; ++row)
 	{
 		uint8_t spriteByte = memory[index + row];
 
-        //printing screen width
 		for (unsigned int col = 0; col < 8; ++col)
 		{
 			uint8_t spritePixel = spriteByte & (0x80u >> col);
@@ -455,6 +450,7 @@ void Chip8::OP_Dxyn()
 		}
 	}
 }
+
 //sets keyboard instruction
 
 void Chip8::OP_Ex9E()
@@ -612,7 +608,6 @@ void Chip8::OP_Fx33()
 
 void Chip8::OP_Fx55()
 {
-    //write program data to ram
 	uint8_t Vx = (opcode & 0x0F00u) >> 8u;
 
 	for (uint8_t i = 0; i <= Vx; ++i)
